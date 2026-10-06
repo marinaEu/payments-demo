@@ -70,6 +70,15 @@ Il progetto implementa un flusso di checkout robusto e scalabile seguendo rigoro
 
 ---
 
+## 📖 Documentazione e Approfondimenti Tecnici
+
+Il progetto include documentazione architetturale dettagliata conforme ai requisiti di consegna:
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md): Diagramma di sequenza del checkout, responsabilità delle classi, schema ER del database e progettazione del Webhook asincrono PayPal.
+- [`DECISIONS.md`](./DECISIONS.md): Motivazioni delle scelte tecnologiche, trade-off sul Pessimistic Locking, strategia anti-duplicazione ibrida, gestione degli errori e piano di containerizzazione con Podman.
+- [`myDocs/laravel-per-sviluppatori-java.md`](./myDocs/laravel-per-sviluppatori-java.md): Guida concettuale per comprendere l'ORM Eloquent, le Migrations e i DTO partendo dall'ecosistema Java (Spring/Hibernate).
+
+---
+
 ## 📖 Endpoint Disponibili
 
 - `GET /` $\rightarrow$ Endpoint di stato dell'applicazione (Healthcheck) e link alla documentazione.
