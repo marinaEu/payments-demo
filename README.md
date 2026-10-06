@@ -70,6 +70,16 @@ Il progetto implementa un flusso di checkout robusto e scalabile seguendo rigoro
 
 ---
 
+## 🧮 Logica di Business & Calcolo Carrello (Giorno 2)
+
+La logica finanziaria e di magazzino è completamente disaccoppiata dal layer HTTP tramite Action dedicate:
+
+- **`CheckStockAction`**: Ispeziona in modo puntuale le scorte degli articoli (SKU). Se la quantità richiesta non è disponibile, solleva una `OutOfStockException` (HTTP 409). Supporta il parametro `$lock = true` per attivare il **Pessimistic Locking** (`lockForUpdate`).
+- **`ValidateCouponAction`**: Valida lo stato del coupon promozionale (esistenza, stato attivo, scadenza temporale). Calcola la deduzione sia per sconti in percentuale (es. 10%) sia a valore fisso (es. 15€), garantendo che lo sconto non ecceda mai il subtotale. In caso di anomalia solleva una `InvalidCouponException` (HTTP 422).
+- **`CalculateCartTotalAction`**: L'orchestratore del calcolo economico. Calcola il subtotale al centesimo, applica il coupon, determina l'imponibile netto, calcola l'aliquota IVA ordinaria al 22% e calcola il totale finale, restituendo un `CartCalculationResultDTO`.
+
+---
+
 ## 📖 Documentazione e Approfondimenti Tecnici
 
 Il progetto include documentazione architetturale dettagliata conforme ai requisiti di consegna:
