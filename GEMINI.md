@@ -1,4 +1,5 @@
 ## Regole sulla Documentazione (Clean & Concise Code)
+- **Aggiornamento README.md**: Ricordati sempre di aggiornare il file `README.md` (nuovi endpoint, configurazioni e istruzioni) al termine del completamento di ogni nuova funzionalità/milestone (non ad ogni singolo commit).
 - **Self-Documenting Code**: Usa nomi di variabili, metodi e classi estremamente espressivi. Se serve un commento per capire cosa fa una riga, rinomina il metodo o la variabile.
 - **PHPDoc Essenziale**: Inserisci un blocco PHPDoc solo sopra classi e metodi pubblici, limitandoti a una spiegazione sintetica.
 - **Commenti Inline Esclusivamente per il "Perché"**: Inserisci commenti inline SOLO se c'è un motivo di business non ovvio, un'eccezione alla regola, o un'ottimizzazione di performance.
