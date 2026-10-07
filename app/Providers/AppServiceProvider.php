@@ -21,6 +21,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Gate::define('viewApiDocs', fn ($user = null) => app()->environment('local', 'testing'));
     }
 }

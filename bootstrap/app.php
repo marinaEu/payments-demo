@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,4 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Centralized handler for database uniqueness violations (Idempotency Level 2)
+        $exceptions->render(function (UniqueConstraintViolationException $e, Request $request) {
+            $token = $request->input('checkout_token') ?? $request->header('Idempotency-Key');
+
+            return response()->json([
+                'error' => 'duplicate_order',
+                'message' => 'Un ordine con questo token di checkout è già in fase di elaborazione o precedentemente completato.',
+                'idempotency_key' => $token,
+            ], 409);
+        });
     })->create();

@@ -105,4 +105,50 @@ Il progetto include documentazione architetturale dettagliata conforme ai requis
 - `GET /` $\rightarrow$ Endpoint di stato dell'applicazione (Healthcheck) e link alla documentazione.
 - `GET /docs/api` $\rightarrow$ Interfaccia interattiva OpenAPI / Swagger (Dedoc Scramble).
 - `GET /api/increment/{number}` $\rightarrow$ Endpoint di test architetturale (incrementa il numero in input di 2).
+- `POST /api/checkout` $\rightarrow$ **Endpoint Principale di Checkout** (Giorno 4). Esegue la validazione del carrello, il controllo stock con blocco pessimistico, l'applicazione del coupon, la creazione dell'ordine in stato `pending`, la chiamata a PayPal Mock e la restituzione della `redirect_url`.
+
+### Esempio di Chiamata `POST /api/checkout`
+
+**Headers raccomandati**:
+```http
+Content-Type: application/json
+Idempotency-Key: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
+```
+
+**Payload JSON di richiesta**:
+```json
+{
+  "checkout_token": "chk_unique_session_9988",
+  "items": [
+    {
+      "sku_code": "RUN-42",
+      "quantity": 1
+    }
+  ],
+  "coupon_code": "DISCOUNT10",
+  "customer_email": "mario.rossi@example.com",
+  "currency": "EUR",
+  "return_url": "https://miosito.it/checkout/success",
+  "cancel_url": "https://miosito.it/checkout/cancel"
+}
+```
+
+**Risposta HTTP `201 Created`**:
+```json
+{
+  "order_id": 1,
+  "status": "pending",
+  "provider_order_id": "PAYPAL_MOCK_5O190127TN364715T",
+  "redirect_url": "https://www.sandbox.paypal.com/checkoutnow?token=PAYPAL_MOCK_5O190127TN364715T",
+  "total_amount": 109.80,
+  "currency": "EUR",
+  "items_count": 1
+}
+```
+
+**Comportamento Errori & Resilienza**:
+- `409 Conflict`: Restituito se la quantità richiesta supera lo stock a magazzino (`error: out_of_stock`) oppure se viene rilevato un ordine duplicato a livello di vincolo DB.
+- `422 Unprocessable Entity`: Restituito in caso di coupon inesistente/scaduto o errori di validazione schema.
+- `502 Bad Gateway`: Restituito se il gateway di pagamento fallisce o simula un timeout (la transazione DB locale viene annullata automaticamente, prevenendo ordini orfani).
+
 
