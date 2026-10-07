@@ -43,10 +43,11 @@ Il progetto implementa un flusso di checkout robusto e scalabile seguendo rigoro
    php artisan key:generate
    ```
 
-4. **Esegui le migrazioni del Database**:
+4. **Esegui le migrazioni e popola i dati di test (Seeder)**:
    ```bash
-   php artisan migrate
+   php artisan migrate --seed
    ```
+   *(Crea automaticamente prodotti di catalogo, varianti SKU con scorte reali ed esaurite, e coupon promozionali).*
 
 5. **Avvia il server di sviluppo**:
    ```bash
@@ -150,5 +151,22 @@ Idempotency-Key: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d
 - `409 Conflict`: Restituito se la quantità richiesta supera lo stock a magazzino (`error: out_of_stock`) oppure se viene rilevato un ordine duplicato a livello di vincolo DB.
 - `422 Unprocessable Entity`: Restituito in caso di coupon inesistente/scaduto o errori di validazione schema.
 - `502 Bad Gateway`: Restituito se il gateway di pagamento fallisce o simula un timeout (la transazione DB locale viene annullata automaticamente, prevenendo ordini orfani).
+
+### Comando cURL per Test Rapido da Terminale
+```bash
+curl -X POST http://localhost:8000/api/checkout \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 11112222-3333-4444-5555-666677778888" \
+  -d '{
+    "checkout_token": "chk_demo_curl_001",
+    "items": [
+      {"sku_code": "RUN-42", "quantity": 1}
+    ],
+    "coupon_code": "DISCOUNT10",
+    "customer_email": "mario.rossi@example.com",
+    "currency": "EUR"
+  }'
+```
+
 
 
