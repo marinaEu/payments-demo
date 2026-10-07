@@ -109,6 +109,8 @@ L'integrazione dei pagamenti è disaccoppiata dall'infrastruttura tramite **Inve
 - **`PayPalRedirectMockService` (`app/Services`)**: Implementazione mock conforme alla specifica PayPal REST v2 Orders API. Simula la creazione dell'ordine generando un identificatore alfanumerico (es. `PAYPAL_MOCK_5O190127TN364715T`) e l'URL di approvazione (`https://www.sandbox.paypal.com/checkoutnow?token=...`).
 - **Inversion of Control**: Il binding è registrato in `AppServiceProvider`, consentendo di sostituire il Mock con un provider reale PayPal o Stripe senza modificare l'orchestratore di checkout.
 - **Resilienza & Error Simulation**: Se l'ordine appartiene all'indirizzo email `fail_paypal@test.com`, il servizio simula un'eccezione di timeout/disservizio (`PaymentGatewayException` HTTP 502) per testare le difese transazionali.
+- **Audit Trail Dedicato & Sanitizzazione PII (GDPR)**: Tutte le chiamate in uscita e le relative risposte scambiate con PayPal vengono registrate su un canale di log isolato (`storage/logs/paypal_audit.log`). I dati personali (come le email degli acquirenti) vengono automaticamente mascherati (`m**********@example.com`) per garantire la piena conformità GDPR e la protezione nelle dispute per chargeback.
+
 
 ---
 

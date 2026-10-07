@@ -65,6 +65,14 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'paypal_audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/paypal_audit.log'),
+            'level' => 'debug',
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
         'daily' => [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
