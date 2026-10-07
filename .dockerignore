@@ -1,0 +1,14 @@
+.git
+.github
+myDocs
+vendor
+node_modules
+.env
+.env.backup
+.env.production
+.phpunit.result.cache
+storage/*.key
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*

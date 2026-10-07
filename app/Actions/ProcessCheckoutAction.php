@@ -54,8 +54,10 @@ final class ProcessCheckoutAction
                 'customer_email' => $cart->customerEmail,
             ]);
 
-            // 3. Persist order line items snapshot
+            // 3. Persist order line items snapshot and atomically reserve/decrement inventory under pessimistic lock
             foreach ($calcResult->items as $item) {
+                $item->sku->decrement('stock', $item->quantity);
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'sku_id' => $item->sku->id,

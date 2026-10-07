@@ -55,18 +55,38 @@ Il progetto implementa un flusso di checkout robusto e scalabile seguendo rigoro
    ```
    L'applicazione sarà accessibile su `http://localhost:8000`.
 
+### 🐳 Avvio Alternativo con Podman / Docker (Opzionale)
+
+Se preferisci avviare l'intera applicazione e il server Redis containerizzati con Podman (senza dover installare PHP o estensioni sulla macchina host):
+
+```bash
+# Avvia i container dell'applicazione e di Redis in background
+podman-compose up -d --build
+```
+L'API sarà immediatamente disponibile e funzionante su `http://localhost:8000`. Per arrestare i container:
+```bash
+podman-compose down
+```
+
+
 ---
 
 ## 🧪 Esecuzione dei Test e Analisi Statica
 
-- **Esecuzione della suite di test (Pest PHP)**:
+- **Esecuzione della suite di test automatizzati (Pest PHP)**:
   ```bash
   vendor/bin/pest
   ```
 
-- **Esecuzione dell'analisi statica (Larastan)**:
+- **Esecuzione dell'analisi statica dei tipi (Larastan / PHPStan Livello 5)**:
   ```bash
   vendor/bin/phpstan analyse
+  ```
+
+- **Suite di Test End-to-End REST (Script Python autonomo)**:
+  *(Resetta automaticamente il DB ed esegue 7 scenari reali di checkout via HTTP)*:
+  ```bash
+  python test_e2e.py
   ```
 
 ---
