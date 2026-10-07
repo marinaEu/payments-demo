@@ -80,6 +80,17 @@ La logica finanziaria e di magazzino è completamente disaccoppiata dal layer HT
 
 ---
 
+## 💳 Gateway di Pagamento & PayPal Mock (Giorno 3)
+
+L'integrazione dei pagamenti è disaccoppiata dall'infrastruttura tramite **Inversion of Control (IoC)**:
+
+- **`PaymentGatewayInterface` (`app/Contracts`)**: Definisce il contratto per qualsiasi provider in modalità Redirect (`createOrder(Order $order, ...): PaymentRedirectResponseDTO`).
+- **`PayPalRedirectMockService` (`app/Services`)**: Implementazione mock conforme alla specifica PayPal REST v2 Orders API. Simula la creazione dell'ordine generando un identificatore alfanumerico (es. `PAYPAL_MOCK_5O190127TN364715T`) e l'URL di approvazione (`https://www.sandbox.paypal.com/checkoutnow?token=...`).
+- **Inversion of Control**: Il binding è registrato in `AppServiceProvider`, consentendo di sostituire il Mock con un provider reale PayPal o Stripe senza modificare l'orchestratore di checkout.
+- **Resilienza & Error Simulation**: Se l'ordine appartiene all'indirizzo email `fail_paypal@test.com`, il servizio simula un'eccezione di timeout/disservizio (`PaymentGatewayException` HTTP 502) per testare le difese transazionali.
+
+---
+
 ## 📖 Documentazione e Approfondimenti Tecnici
 
 Il progetto include documentazione architetturale dettagliata conforme ai requisiti di consegna:
