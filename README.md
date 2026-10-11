@@ -84,42 +84,18 @@ podman-compose down
   ```
 
 - **Suite di Test End-to-End REST (Script Python autonomo)**:
-  *(Resetta automaticamente il DB ed esegue 7 scenari reali di checkout via HTTP)*:
+  *(Resetta automaticamente il DB ed esegue 7 scenari di checkout via HTTP)*:
   ```bash
   python test_e2e.py
   ```
 
 ---
 
-## 🧮 Logica di Business & Calcolo Carrello (Giorno 2)
-
-La logica finanziaria e di magazzino è completamente disaccoppiata dal layer HTTP tramite Action dedicate:
-
-- **`CheckStockAction`**: Ispeziona in modo puntuale le scorte degli articoli (SKU). Se la quantità richiesta non è disponibile, solleva una `OutOfStockException` (HTTP 409). Supporta il parametro `$lock = true` per attivare il **Pessimistic Locking** (`lockForUpdate`).
-- **`ValidateCouponAction`**: Valida lo stato del coupon promozionale (esistenza, stato attivo, scadenza temporale). Calcola la deduzione sia per sconti in percentuale (es. 10%) sia a valore fisso (es. 15€), garantendo che lo sconto non ecceda mai il subtotale. In caso di anomalia solleva una `InvalidCouponException` (HTTP 422).
-- **`CalculateCartTotalAction`**: L'orchestratore del calcolo economico. Calcola il subtotale al centesimo, applica il coupon, determina l'imponibile netto, calcola l'aliquota IVA ordinaria al 22% e calcola il totale finale, restituendo un `CartCalculationResultDTO`.
-
----
-
-## 💳 Gateway di Pagamento & PayPal Mock (Giorno 3)
-
-L'integrazione dei pagamenti è disaccoppiata dall'infrastruttura tramite **Inversion of Control (IoC)**:
-
-- **`PaymentGatewayInterface` (`app/Contracts`)**: Definisce il contratto per qualsiasi provider in modalità Redirect (`createOrder(Order $order, ...): PaymentRedirectResponseDTO`).
-- **`PayPalRedirectMockService` (`app/Services`)**: Implementazione mock conforme alla specifica PayPal REST v2 Orders API. Simula la creazione dell'ordine generando un identificatore alfanumerico (es. `PAYPAL_MOCK_5O190127TN364715T`) e l'URL di approvazione (`https://www.sandbox.paypal.com/checkoutnow?token=...`).
-- **Inversion of Control**: Il binding è registrato in `AppServiceProvider`, consentendo di sostituire il Mock con un provider reale PayPal o Stripe senza modificare l'orchestratore di checkout.
-- **Resilienza & Error Simulation**: Se l'ordine appartiene all'indirizzo email `fail_paypal@test.com`, il servizio simula un'eccezione di timeout/disservizio (`PaymentGatewayException` HTTP 502) per testare le difese transazionali.
-- **Audit Trail Dedicato & Sanitizzazione PII (GDPR)**: Tutte le chiamate in uscita e le relative risposte scambiate con PayPal vengono registrate su un canale di log isolato (`storage/logs/paypal_audit.log`). I dati personali (come le email degli acquirenti) vengono automaticamente mascherati (`m**********@example.com`) per garantire la piena conformità GDPR e la protezione nelle dispute per chargeback.
-
-
----
-
-## 📖 Documentazione e Approfondimenti Tecnici
 
 Il progetto include documentazione architetturale dettagliata conforme ai requisiti di consegna:
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md): Diagramma di sequenza del checkout, responsabilità delle classi, schema ER del database e progettazione del Webhook asincrono PayPal.
 - [`DECISIONS.md`](./DECISIONS.md): Motivazioni delle scelte tecnologiche, trade-off sul Pessimistic Locking, strategia anti-duplicazione ibrida, gestione degli errori e piano di containerizzazione con Podman.
-- [`myDocs/laravel-per-sviluppatori-java.md`](./myDocs/laravel-per-sviluppatori-java.md): Guida concettuale per comprendere l'ORM Eloquent, le Migrations e i DTO partendo dall'ecosistema Java (Spring/Hibernate).
+
 
 ---
 
@@ -127,8 +103,7 @@ Il progetto include documentazione architetturale dettagliata conforme ai requis
 
 - `GET /` $\rightarrow$ Endpoint di stato dell'applicazione (Healthcheck) e link alla documentazione.
 - `GET /docs/api` $\rightarrow$ Interfaccia interattiva OpenAPI / Swagger (Dedoc Scramble).
-- `GET /api/increment/{number}` $\rightarrow$ Endpoint di test architetturale (incrementa il numero in input di 2).
-- `POST /api/checkout` $\rightarrow$ **Endpoint Principale di Checkout** (Giorno 4). Esegue la validazione del carrello, il controllo stock con blocco pessimistico, l'applicazione del coupon, la creazione dell'ordine in stato `pending`, la chiamata a PayPal Mock e la restituzione della `redirect_url`.
+- `POST /api/checkout` $\rightarrow$ **Endpoint Principale di Checkout**  Esegue la validazione del carrello, il controllo stock con blocco pessimistico, l'applicazione del coupon, la creazione dell'ordine in stato `pending`, la chiamata a PayPal Mock e la restituzione della `redirect_url`.
 
 ### Esempio di Chiamata `POST /api/checkout`
 

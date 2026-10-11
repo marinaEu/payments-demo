@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property string $checkout_token
  * @property string|null $provider_order_id
  * @property OrderStatus $status
+ * @property string|null $failure_reason
  * @property numeric-string|float $subtotal_amount
  * @property numeric-string|float $tax_amount
  * @property numeric-string|float $discount_amount
@@ -39,6 +40,7 @@ class Order extends Model
         'checkout_token',
         'provider_order_id',
         'status',
+        'failure_reason',
         'subtotal_amount',
         'tax_amount',
         'discount_amount',

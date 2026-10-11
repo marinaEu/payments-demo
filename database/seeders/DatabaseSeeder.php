@@ -16,6 +16,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (Product::where('name', 'Scarpe da Corsa Pro')->exists()) {
+            return;
+        }
+
         // 1. Prodotto: Scarpe da Corsa Pro
         $shoes = Product::create([
             'name' => 'Scarpe da Corsa Pro',

@@ -13,7 +13,7 @@ final readonly class CouponValidationResultDTO
 {
     public function __construct(
         public ?Coupon $coupon,
-        public float $discountAmount
+        public string $discountAmount
     ) {
     }
 }

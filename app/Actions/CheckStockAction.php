@@ -10,12 +10,15 @@ use App\Exceptions\SkuNotFoundException;
 use App\Models\Sku;
 
 /**
- * Verifies inventory stock availability for requested cart items with optional pessimistic locking.
+ * Verifies inventory stock in a single batch query with deterministic pessimistic locking.
+ *
+ * Eliminates N+1 database queries and prevents circular-wait transaction deadlocks (SQLSTATE 40001)
+ * by strictly acquiring row locks in ascending primary key order.
  */
 final class CheckStockAction
 {
     /**
-     * Inspects stock for each item, throwing domain exceptions if unavailable.
+     * Inspects stock for each item in batch, throwing domain exceptions if unavailable.
      *
      * @param array<int, CartItemDTO> $items
      * @return array<string, Sku>
@@ -25,35 +28,55 @@ final class CheckStockAction
      */
     public function execute(array $items, bool $lock = false): array
     {
-        /** @var array<string, Sku> $resolvedSkus */
-        $resolvedSkus = [];
+        if (empty($items)) {
+            return [];
+        }
 
+        // 1. Aggregate requested quantities per SKU code to handle potential duplicate cart lines
+        /** @var array<string, int> $aggregatedQuantities */
+        $aggregatedQuantities = [];
         foreach ($items as $item) {
-            $query = Sku::where('code', $item->skuCode)->where('is_active', true);
+            $aggregatedQuantities[$item->skuCode] = ($aggregatedQuantities[$item->skuCode] ?? 0) + $item->quantity;
+        }
 
-            if ($lock) {
-                // Pessimistic lock to prevent race conditions during checkout confirmation
-                $query->lockForUpdate();
+        $uniqueSkuCodes = array_keys($aggregatedQuantities);
+
+        // 2. Build single batch query eliminating N+1 overhead
+        // Ordering deterministically by 'id' ASC mathematically eliminates circular-wait Deadlocks
+        $query = Sku::whereIn('code', $uniqueSkuCodes)
+            ->where('is_active', true)
+            ->orderBy('id', 'asc');
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Sku> $loadedSkus */
+        $loadedSkus = $query->get();
+
+        /** @var array<string, Sku> $skuMap */
+        $skuMap = [];
+        foreach ($loadedSkus as $sku) {
+            $skuMap[$sku->code] = $sku;
+        }
+
+        // 3. Validate existence and stock availability against aggregated demand
+        foreach ($aggregatedQuantities as $skuCode => $requestedQty) {
+            if (! isset($skuMap[$skuCode])) {
+                throw new SkuNotFoundException($skuCode);
             }
 
-            /** @var Sku|null $sku */
-            $sku = $query->first();
+            $sku = $skuMap[$skuCode];
 
-            if ($sku === null) {
-                throw new SkuNotFoundException($item->skuCode);
-            }
-
-            if ($sku->stock < $item->quantity) {
+            if ($sku->stock < $requestedQty) {
                 throw new OutOfStockException(
                     skuCode: $sku->code,
-                    requestedQuantity: $item->quantity,
+                    requestedQuantity: $requestedQty,
                     availableStock: $sku->stock
                 );
             }
-
-            $resolvedSkus[$sku->code] = $sku;
         }
 
-        return $resolvedSkus;
+        return $skuMap;
     }
 }

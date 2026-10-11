@@ -14,7 +14,7 @@ final readonly class CheckoutResultDTO
         public string $status,
         public string $providerOrderId,
         public string $redirectUrl,
-        public float $totalAmount,
+        public string $totalAmount,
         public string $currency,
         public int $itemsCount
     ) {
@@ -32,7 +32,7 @@ final readonly class CheckoutResultDTO
             'status' => $this->status,
             'provider_order_id' => $this->providerOrderId,
             'redirect_url' => $this->redirectUrl,
-            'total_amount' => $this->totalAmount,
+            'total_amount' => (float) $this->totalAmount,
             'currency' => $this->currency,
             'items_count' => $this->itemsCount,
         ];

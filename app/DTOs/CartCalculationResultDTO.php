@@ -7,7 +7,7 @@ namespace App\DTOs;
 use App\Models\Coupon;
 
 /**
- * Encapsulates the complete financial computation result for a cart.
+ * Encapsulates the complete financial computation result for a cart with exact precision strings.
  */
 final readonly class CartCalculationResultDTO
 {
@@ -15,12 +15,12 @@ final readonly class CartCalculationResultDTO
      * @param array<int, CartCalculatedItemDTO> $items
      */
     public function __construct(
-        public float $subtotal,
-        public float $discountAmount,
-        public float $taxableAmount,
-        public float $taxRate,
-        public float $taxAmount,
-        public float $totalAmount,
+        public string $subtotal,
+        public string $discountAmount,
+        public string $taxableAmount,
+        public string $taxRate,
+        public string $taxAmount,
+        public string $totalAmount,
         public array $items,
         public ?Coupon $appliedCoupon = null
     ) {

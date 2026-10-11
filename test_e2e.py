@@ -141,7 +141,7 @@ def main():
     passed_1 = (
         status_1 == 201
         and body_1.get("status") == "pending"
-        and body_1.get("total_amount") == 109.80
+        and str(body_1.get("total_amount")) in ("109.80", "109.8")
         and "PAYPAL_MOCK_" in body_1.get("provider_order_id", "")
         and "redirect_url" in body_1
     )

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\ProcessCheckoutAction;
 use App\DTOs\CartDTO;
 use App\Http\Requests\CheckoutRequest;
+use App\Http\Resources\CheckoutResource;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -21,10 +22,10 @@ final class CheckoutController extends Controller
      * applica eventuali coupon (fissi o percentuali), registra l'ordine in stato pending
      * e genera l'URL di approvazione per il redirect verso PayPal.
      *
-     * @response 201 array{order_id: int, status: string, provider_order_id: string, redirect_url: string, total_amount: float, currency: string, items_count: int}
-     * @response 409 array{error: string, message: string, sku_code?: string, requested_quantity?: int, available_stock?: int}
-     * @response 422 array{error: string, message: string}
-     * @response 502 array{error: string, message: string}
+     * @throws \App\Exceptions\OutOfStockException
+     * @throws \App\Exceptions\PaymentGatewayException
+     * @throws \App\Exceptions\SkuNotFoundException
+     * @throws \App\Exceptions\InvalidCouponException
      */
     public function __invoke(CheckoutRequest $request, ProcessCheckoutAction $action): JsonResponse
     {
@@ -47,6 +48,11 @@ final class CheckoutController extends Controller
             cancelUrl: $validated['cancel_url'] ?? null
         );
 
-        return response()->json($result->toArray(), 201);
+        /** @var JsonResponse $response */
+        $response = (new CheckoutResource($result))
+            ->response()
+            ->setStatusCode(201);
+
+        return $response;
     }
 }

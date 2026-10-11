@@ -3,13 +3,9 @@
 declare(strict_types=1);
 
 use App\Actions\CalculateCartTotalAction;
-use App\Actions\CheckStockAction;
-use App\Actions\ValidateCouponAction;
 use App\DTOs\CartDTO;
 use App\DTOs\CartItemDTO;
 use App\Enums\CouponType;
-use App\Exceptions\InvalidCouponException;
-use App\Exceptions\OutOfStockException;
 use App\Models\Coupon;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,10 +13,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->action = new CalculateCartTotalAction(
-        new CheckStockAction(),
-        new ValidateCouponAction()
-    );
+    $this->action = new CalculateCartTotalAction();
 
     $this->product = Product::create(['name' => 'Catalogo Moda']);
     $this->skuA = $this->product->skus()->create([
@@ -38,6 +31,11 @@ beforeEach(function () {
         'stock' => 5,
         'is_active' => true,
     ]);
+
+    $this->resolvedSkus = [
+        'JEANS-32' => $this->skuA,
+        'BELT-100' => $this->skuB,
+    ];
 });
 
 it('calculates exact subtotal, 22% tax, and total without coupon', function () {
@@ -50,20 +48,20 @@ it('calculates exact subtotal, 22% tax, and total without coupon', function () {
         couponCode: null
     );
 
-    $result = $this->action->execute($cart);
+    $result = $this->action->execute($cart, $this->resolvedSkus);
 
-    expect($result->subtotal)->toBe(125.00)
-        ->and($result->discountAmount)->toBe(0.0)
-        ->and($result->taxableAmount)->toBe(125.00)
-        ->and($result->taxRate)->toBe(0.22)
-        ->and($result->taxAmount)->toBe(27.50) // 125 * 0.22 = 27.50
-        ->and($result->totalAmount)->toBe(152.50) // 125 + 27.50 = 152.50
+    expect($result->subtotal)->toBe('125.00')
+        ->and($result->discountAmount)->toBe('0.00')
+        ->and($result->taxableAmount)->toBe('125.00')
+        ->and($result->taxRate)->toBe('0.22')
+        ->and($result->taxAmount)->toBe('27.50') // 125 * 0.22 = 27.50
+        ->and($result->totalAmount)->toBe('152.50') // 125 + 27.50 = 152.50
         ->and($result->items)->toHaveCount(2)
         ->and($result->appliedCoupon)->toBeNull();
 });
 
 it('calculates subtotal, percentage discount, and VAT correctly', function () {
-    Coupon::create([
+    $coupon = new Coupon([
         'code' => 'PROMO10',
         'type' => CouponType::PERCENTAGE,
         'value' => 10.00,
@@ -78,18 +76,18 @@ it('calculates subtotal, percentage discount, and VAT correctly', function () {
         couponCode: 'PROMO10'
     );
 
-    $result = $this->action->execute($cart);
+    $result = $this->action->execute($cart, ['JEANS-32' => $this->skuA], $coupon);
 
-    expect($result->subtotal)->toBe(100.00)
-        ->and($result->discountAmount)->toBe(10.00) // 10% di 100
-        ->and($result->taxableAmount)->toBe(90.00) // 100 - 10
-        ->and($result->taxAmount)->toBe(19.80) // 90 * 0.22 = 19.80
-        ->and($result->totalAmount)->toBe(109.80) // 90 + 19.80 = 109.80
+    expect($result->subtotal)->toBe('100.00')
+        ->and($result->discountAmount)->toBe('10.00') // 10% di 100
+        ->and($result->taxableAmount)->toBe('90.00') // 100 - 10
+        ->and($result->taxAmount)->toBe('19.80') // 90 * 0.22 = 19.80
+        ->and($result->totalAmount)->toBe('109.80') // 90 + 19.80 = 109.80
         ->and($result->appliedCoupon?->code)->toBe('PROMO10');
 });
 
 it('calculates subtotal, fixed value discount, and VAT correctly', function () {
-    Coupon::create([
+    $coupon = new Coupon([
         'code' => 'FLAT15',
         'type' => CouponType::FIXED,
         'value' => 15.00,
@@ -105,37 +103,37 @@ it('calculates subtotal, fixed value discount, and VAT correctly', function () {
         couponCode: 'FLAT15'
     );
 
-    $result = $this->action->execute($cart);
+    $result = $this->action->execute($cart, $this->resolvedSkus, $coupon);
 
-    expect($result->subtotal)->toBe(75.00)
-        ->and($result->discountAmount)->toBe(15.00)
-        ->and($result->taxableAmount)->toBe(60.00) // 75 - 15
-        ->and($result->taxAmount)->toBe(13.20) // 60 * 0.22 = 13.20
-        ->and($result->totalAmount)->toBe(73.20) // 60 + 13.20 = 73.20
+    expect($result->subtotal)->toBe('75.00')
+        ->and($result->discountAmount)->toBe('15.00')
+        ->and($result->taxableAmount)->toBe('60.00') // 75 - 15
+        ->and($result->taxAmount)->toBe('13.20') // 60 * 0.22 = 13.20
+        ->and($result->totalAmount)->toBe('73.20') // 60 + 13.20 = 73.20
         ->and($result->appliedCoupon?->code)->toBe('FLAT15');
 });
 
-it('throws out of stock exception and stops calculation when quantity exceeds inventory', function () {
+it('caps fixed discount to subtotal if coupon value exceeds cart subtotal', function () {
+    $coupon = new Coupon([
+        'code' => 'BIG200',
+        'type' => CouponType::FIXED,
+        'value' => 200.00,
+        'is_active' => true,
+    ]);
+
     $cart = new CartDTO(
         checkoutToken: 'tok_test_4',
         items: [
-            new CartItemDTO(skuCode: 'BELT-100', quantity: 99), // Solo 5 disponibili
-        ]
-    );
-
-    expect(fn () => $this->action->execute($cart))
-        ->toThrow(OutOfStockException::class);
-});
-
-it('throws invalid coupon exception and stops calculation when coupon is invalid', function () {
-    $cart = new CartDTO(
-        checkoutToken: 'tok_test_5',
-        items: [
-            new CartItemDTO(skuCode: 'BELT-100', quantity: 1),
+            new CartItemDTO(skuCode: 'JEANS-32', quantity: 1), // 50.00
         ],
-        couponCode: 'FAKE_CODE'
+        couponCode: 'BIG200'
     );
 
-    expect(fn () => $this->action->execute($cart))
-        ->toThrow(InvalidCouponException::class);
+    $result = $this->action->execute($cart, ['JEANS-32' => $this->skuA], $coupon);
+
+    expect($result->subtotal)->toBe('50.00')
+        ->and($result->discountAmount)->toBe('50.00')
+        ->and($result->taxableAmount)->toBe('0.00')
+        ->and($result->taxAmount)->toBe('0.00')
+        ->and($result->totalAmount)->toBe('0.00');
 });

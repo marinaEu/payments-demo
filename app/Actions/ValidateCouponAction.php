@@ -4,26 +4,24 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\DTOs\CouponValidationResultDTO;
-use App\Enums\CouponType;
 use App\Exceptions\InvalidCouponException;
 use App\Models\Coupon;
 use Carbon\CarbonInterface;
 
 /**
- * Validates promotional coupons and computes the corresponding discount amount.
+ * Resolves and validates a promotional coupon code against the database.
  */
 final class ValidateCouponAction
 {
     /**
-     * Validates the given coupon code against subtotal and returns the discount amount.
+     * Validates the given coupon code and returns the active Coupon model, or null if empty.
      *
      * @throws InvalidCouponException
      */
-    public function execute(?string $couponCode, float $subtotal): CouponValidationResultDTO
+    public function execute(?string $couponCode): ?Coupon
     {
         if ($couponCode === null || trim($couponCode) === '') {
-            return new CouponValidationResultDTO(null, 0.0);
+            return null;
         }
 
         $normalizedCode = strtoupper(trim($couponCode));
@@ -41,14 +39,6 @@ final class ValidateCouponAction
             throw InvalidCouponException::expired($normalizedCode);
         }
 
-        $discount = match ($coupon->type) {
-            CouponType::PERCENTAGE => round(($subtotal * (float) $coupon->value) / 100, 2),
-            CouponType::FIXED => (float) $coupon->value,
-        };
-
-        // Guarantee that the discount never exceeds the available subtotal or goes negative
-        $finalDiscount = max(0.0, min($discount, $subtotal));
-
-        return new CouponValidationResultDTO($coupon, $finalDiscount);
+        return $coupon;
     }
 }
